@@ -74,7 +74,9 @@ class PControllerNode(DTROS):
         self.kp = 0.035  # Proportional gain
         
         # Controller state
-        self.error = 0
+        self.error = None
+        self.last_camera_time = None
+        self.camera_timeout = 0.5
         
         # Forward velocity (constant for straight line test)
         self.forward_velocity = 0.35  # m/s
@@ -95,12 +97,14 @@ class PControllerNode(DTROS):
         
         # Timer for controller update (10Hz)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.control_loop)
+        rospy.on_shutdown(self.stop)
         
         self.log("P Controller node initialized")
     
     def camera_callback(self, msg):
         """Process the camera image to detect lanes"""
         try:
+            self.last_camera_time = rospy.get_time()
             # Convert compressed image to CV image
             img = self.bridge.compressed_imgmsg_to_cv2(msg)
             
@@ -201,16 +205,21 @@ class PControllerNode(DTROS):
         elif white_center is not None:
             # If only white lane is detected, stay a fixed distance to the left
             self.error = white_center - (img_center + 100)  # Offset to stay left of white line
-        # If no lanes detected, keep the previous error (no update)
+        else:
+            self.error = None
     
     def control_loop(self, event):
         """P control loop for lane following"""
+        if self.last_camera_time is None or rospy.get_time() - self.last_camera_time > self.camera_timeout:
+            self.stop()
+            return
         # Skip if no error has been calculated yet (e.g., no lanes detected yet)
         if self.error is None:
+            self.stop()
             return
         
         # P controller: omega = -kp * error
-        omega = -self.kp * self.error
+        omega = max(-8.0, min(8.0, -self.kp * self.error))
         
         # Publish controller state for debugging
         controller_state = f"P - Error: {self.error:.2f}, Output: {omega:.4f}"

@@ -1,7 +1,7 @@
 # parameters
-ARG REPO_NAME="assignment2"
-ARG DESCRIPTION="assignment 2 solution"
-ARG MAINTAINER="Dikshant (ddikshan@ualberta.ca)"
+ARG REPO_NAME="duckiebot_vision_lab"
+ARG DESCRIPTION="Duckiebot computer-vision and controller exercises"
+ARG MAINTAINER="Xinjie Ye (xye1@ualberta.ca)"
 # pick an icon from: https://fontawesome.com/v4.7.0/icons/
 ARG ICON="cube"
 

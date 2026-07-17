@@ -1,0 +1,10 @@
+std_msgs/Header header
+bool detected
+string color
+float32 confidence
+float32 area_px
+float32 distance_cm
+int32 x
+int32 y
+int32 width
+int32 height

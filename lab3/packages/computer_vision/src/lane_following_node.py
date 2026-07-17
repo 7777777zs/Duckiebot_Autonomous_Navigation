@@ -31,7 +31,9 @@ class LaneFollowingNode(DTROS):
         self.ki = 0.001  # Integral gain
         
         # Controller state
-        self.error = 0
+        self.error = None
+        self.last_camera_time = None
+        self.camera_timeout = 0.5
         self.last_error = 0
         self.integral = 0
         self.derivative = 0
@@ -109,12 +111,14 @@ class LaneFollowingNode(DTROS):
         
         # Timer for controller update (10Hz)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.control_loop)
+        rospy.on_shutdown(self.stop)
         
         self.log("Lane following node initialized with PID control")
     
     def camera_callback(self, msg):
         """Process the camera image to detect lanes"""
         try:
+            self.last_camera_time = rospy.get_time()
             # Convert compressed image to CV image
             img = self.bridge.compressed_imgmsg_to_cv2(msg)
             
@@ -236,12 +240,18 @@ class LaneFollowingNode(DTROS):
             # Only white lane detected - stay a fixed distance to the left
             self.error = white_center - (img_center + 100)  # Offset by approx lane width/2
             self.current_speed = self.turn_speed  # Slow down when only one lane is visible
-            
-        # If no lanes detected, keep the previous error (no update)
+
+        else:
+            self.error = None
+            self.current_speed = 0.0
     
     def control_loop(self, event):
         """PID control loop for lane following"""
+        if self.last_camera_time is None or rospy.get_time() - self.last_camera_time > self.camera_timeout:
+            self.stop()
+            return
         if self.error is None:
+            self.stop()
             return
         
         # Calculate dt

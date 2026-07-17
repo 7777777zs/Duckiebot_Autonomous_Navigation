@@ -1,32 +1,55 @@
-# CMPUT412
+# Duckiebot Autonomous Navigation
 
-## Code
+Computer-vision and motion-control exercises for a Duckiebot, developed as a four-stage CMPUT 412 project. The repository keeps the learning progression visible while presenting `lab_final` as the maintained autonomous-navigation application.
 
-lab1: [lab1/packages/my_package/my_script.py](lab1/packages/my_package/my_script.py)
+## Start here
 
+- [Getting started](docs/getting-started.md) — build and run the project.
+- [Architecture](docs/architecture.md) — understand the ROS data flow.
+- [Lab guide](docs/lab-guide.md) — navigate the progression from ROS basics to navigation.
+- [Operations](docs/operations.md) — safety, runtime commands, and recovery.
+- [Testing](docs/testing.md) — local and Duckietown validation.
+- [Troubleshooting](docs/troubleshooting.md) — common setup and runtime issues.
 
-lab2: [lab2/exercise-2/packages/odometry](lab2/exercise-2/packages/odometry)
+## Quick start: final application
 
-lab3: [lab3/packages/computer_vision/src](lab3/packages/computer_vision/src)
+From the repository root, build the Duckietown development image and run the canonical pipeline:
 
-## Instructions
+```bash
+dts devel build -f
+dts devel run -R <robot-name> -L default
+```
 
-lab3: 
+The default pipeline is:
 
-`dts devel build -f`
+```text
+camera + calibration → image processing → typed color detection
+    → colored-line state machine → wheel commands + LEDs
+```
 
-`dts devel run -R csc22944 -L camera-distortion`
+Run one diagnostic launcher at a time when inspecting a stage:
 
-`dts devel run -R csc22944 -L camera_processing`
+```bash
+dts devel run -R <robot-name> -L camera-processing
+dts devel run -R <robot-name> -L color-detection
+dts devel run -R <robot-name> -L lane-following
+```
 
-`dts devel run -R csc22944 -L color_detection`
+Do not run multiple command-producing controllers against the same robot simultaneously.
 
-`dts devel run -R csc22944 -L state_maching`
+## Project stages
 
-`dts devel run -R csc22944 -L p_controller`
+| Stage | Focus | Entry point |
+| --- | --- | --- |
+| [lab1](lab1/README.md) | Environment and basic Python | `lab1/packages/my_package/my_script.py` |
+| [lab2](lab2/exercise-2/README.md) | ROS, wheel control, and odometry | `lab2/exercise-2/packages/odometry` |
+| [lab3](lab3/README.md) | Camera processing and controllers | `lab3/packages/computer_vision` |
+| [lab_final](lab_final/README.md) | Modular autonomous navigation | `lab_final/packages/computer_vision` |
 
-`dts devel run -R csc22944 -L pd_controller`
+## Project status
 
-`dts devel run -R csc22944 -L pid_controller`
+The Python source is statically checked locally. Unit tests cover the hardware-independent navigation logic. Physical Duckiebot smoke tests require a configured robot, camera calibration, and a safe test track.
 
-`dts devel run -R csc22944 -L lane_following`
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for code, testing, and safety conventions.

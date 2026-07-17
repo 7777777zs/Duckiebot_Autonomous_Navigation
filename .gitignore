@@ -1,0 +1,27 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ROS and Duckietown build outputs
+build/
+devel/
+install/
+log/
+*.bag
+*.db3
+
+# Generated plots and camera samples
+trajectory_*.png
+data/color_samples/
+
+# Generated documentation
+html/*
+!html/.gitkeep
+
+# Local editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+

@@ -75,7 +75,9 @@ class PDControllerNode(DTROS):
         self.kd = 0.01   # Derivative gain
         
         # PD controller state
-        self.error = 0
+        self.error = None
+        self.last_camera_time = None
+        self.camera_timeout = 0.5
         self.last_error = 0
         self.derivative = 0
         self.last_time = rospy.get_time()
@@ -99,12 +101,14 @@ class PDControllerNode(DTROS):
         
         # Timer for controller update (10Hz)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.control_loop)
+        rospy.on_shutdown(self.stop)
         
         self.log("PD Controller node initialized")
     
     def camera_callback(self, msg):
         """Process the camera image to detect lanes"""
         try:
+            self.last_camera_time = rospy.get_time()
             # Convert compressed image to CV image
             img = self.bridge.compressed_imgmsg_to_cv2(msg)
             
@@ -205,12 +209,17 @@ class PDControllerNode(DTROS):
         elif white_center is not None:
             # If only white lane is detected, stay a fixed distance to the left
             self.error = white_center - (img_center + 100)  # Offset to stay left of white line
-        # If no lanes detected, keep the previous error (no update)
+        else:
+            self.error = None
     
     def control_loop(self, event):
         """PD control loop for lane following"""
+        if self.last_camera_time is None or rospy.get_time() - self.last_camera_time > self.camera_timeout:
+            self.stop()
+            return
         # Skip if no error has been calculated yet
         if self.error is None:
+            self.stop()
             return
         
         # Calculate dt
@@ -225,6 +234,7 @@ class PDControllerNode(DTROS):
         
         # PD controller: omega = -kp * error - kd * derivative
         omega = -self.kp * self.error - self.kd * self.derivative
+        omega = max(-8.0, min(8.0, omega))
         
         # Publish controller state for debugging
         controller_state = f"PD - Error: {self.error:.2f}, D: {self.derivative:.2f}, Output: {omega:.4f}"

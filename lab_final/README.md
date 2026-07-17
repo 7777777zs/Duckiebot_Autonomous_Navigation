@@ -1,47 +1,36 @@
-# Template: template-ros
+# Final lab — Modular autonomous navigation
 
-This template provides a boilerplate repository
-for developing ROS-based software in Duckietown.
+This is the maintained application in the repository. It connects camera processing, typed colored-line detection, a safe state machine, wheel commands, and LED state indicators.
 
-**NOTE:** If you want to develop software that does not use
-ROS, check out [this template](https://github.com/duckietown/template-basic).
+## Canonical pipeline
 
+```text
+camera + calibration → processing → LineDetection
+    → colored-line state machine → commands + LEDs
+```
 
-## How to use it
+## Build and run
 
-### 1. Fork this repository
+```bash
+dts devel build -f
+dts devel run -R <robot-name> -L default
+```
 
-Use the fork button in the top-right corner of the github page to fork this template repository.
+The default launcher starts only the end-to-end autonomous pipeline. Diagnostic launchers are available for camera distortion, camera processing, color detection, P/PD/PID controllers, and lane following.
 
+## Interfaces
 
-### 2. Create a new repository
+- Input: `/<vehicle>/camera_node/image/compressed`
+- Processed image: `/<vehicle>/computer_vision/image/processed`
+- Detection: `/<vehicle>/computer_vision/line_detection`
+- State: `/<vehicle>/computer_vision/state`
+- Motion: `/<vehicle>/car_cmd_switch_node/cmd`
+- LEDs: `/<vehicle>/led_emitter_node/led_pattern`
 
-Create a new repository on github.com while
-specifying the newly forked template repository as
-a template for your new repository.
+## Safety
 
+The state machine stops on missing or stale detection data and publishes zero velocity on shutdown. Do not run a diagnostic controller alongside the default launcher.
 
-### 3. Define dependencies
+## Validation
 
-List the dependencies in the files `dependencies-apt.txt` and
-`dependencies-py3.txt` (apt packages and pip packages respectively).
-
-
-### 4. Place your code
-
-Place your code in the directory `/packages/` of
-your new repository.
-
-
-### 5. Setup launchers
-
-The directory `/launchers` can contain as many launchers (launching scripts)
-as you want. A default launcher called `default.sh` must always be present.
-
-If you create an executable script (i.e., a file with a valid shebang statement)
-a launcher will be created for it. For example, the script file 
-`/launchers/my-launcher.sh` will be available inside the Docker image as the binary
-`dt-launcher-my-launcher`.
-
-When launching a new container, you can simply provide `dt-launcher-my-launcher` as
-command.
+Use `python -m pytest` for hardware-independent tests. Physical validation requires a calibrated Duckiebot and a clear test track; see the root `docs/operations.md` and `docs/testing.md`.

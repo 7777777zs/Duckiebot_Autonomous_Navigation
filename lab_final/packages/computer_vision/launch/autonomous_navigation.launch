@@ -1,0 +1,8 @@
+<launch>
+  <node pkg="computer_vision" type="camera_processing_node.py"
+        name="camera_processing_node" output="screen" />
+  <node pkg="computer_vision" type="color_detection_node.py"
+        name="color_detection_node" output="screen" />
+  <node pkg="computer_vision" type="state_machine_node.py"
+        name="state_machine_node" output="screen" />
+</launch>

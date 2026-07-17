@@ -17,6 +17,7 @@ def plot_trajectory():
     # Open the rosbag file with the same name pattern used in recording
     bag_filename = f'odometry_{vehicle_name}.bag'
     
+    bag = None
     try:
         # Open the bag file
         bag = rosbag.Bag(bag_filename)
@@ -28,6 +29,7 @@ def plot_trajectory():
             y_points.append(msg.pose.pose.position.y)
         
         bag.close()
+        bag = None
         
         # Create the plot
         plt.figure(figsize=(10, 10))
@@ -51,10 +53,8 @@ def plot_trajectory():
     except Exception as e:
         print(f"Error while processing bag file: {e}")
     finally:
-        try:
+        if bag is not None:
             bag.close()
-        except:
-            pass
 
 if __name__ == '__main__':
     plot_trajectory()

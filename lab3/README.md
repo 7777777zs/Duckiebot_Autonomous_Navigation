@@ -1,47 +1,25 @@
-# Template: template-ros
+# Lab 3 — Vision and controllers
 
-This template provides a boilerplate repository
-for developing ROS-based software in Duckietown.
+This stage explores the computer-vision building blocks used by the final application: camera calibration, preprocessing, colored-line detection, P/PD/PID control, lane following, and state transitions.
 
-**NOTE:** If you want to develop software that does not use
-ROS, check out [this template](https://github.com/duckietown/template-basic).
+## Package contents
 
+The ROS package is `packages/computer_vision`. Its nodes are independently launchable for comparison and tuning. The final modular pipeline is documented in `lab_final`; this lab remains the intermediate exercise snapshot.
 
-## How to use it
+## Build and run
 
-### 1. Fork this repository
+```bash
+dts devel build -f
+dts devel run -R <robot-name> -L camera-processing
+dts devel run -R <robot-name> -L color-detection
+dts devel run -R <robot-name> -L p-controller
+dts devel run -R <robot-name> -L pd-controller
+dts devel run -R <robot-name> -L pid-controller
+dts devel run -R <robot-name> -L lane-following
+```
 
-Use the fork button in the top-right corner of the github page to fork this template repository.
+Run only one command-producing controller at a time. Use the state-machine launcher only when testing that behavior in isolation.
 
+## Expected behavior
 
-### 2. Create a new repository
-
-Create a new repository on github.com while
-specifying the newly forked template repository as
-a template for your new repository.
-
-
-### 3. Define dependencies
-
-List the dependencies in the files `dependencies-apt.txt` and
-`dependencies-py3.txt` (apt packages and pip packages respectively).
-
-
-### 4. Place your code
-
-Place your code in the directory `/packages/` of
-your new repository.
-
-
-### 5. Setup launchers
-
-The directory `/launchers` can contain as many launchers (launching scripts)
-as you want. A default launcher called `default.sh` must always be present.
-
-If you create an executable script (i.e., a file with a valid shebang statement)
-a launcher will be created for it. For example, the script file 
-`/launchers/my-launcher.sh` will be available inside the Docker image as the binary
-`dt-launcher-my-launcher`.
-
-When launching a new container, you can simply provide `dt-launcher-my-launcher` as
-command.
+Vision nodes publish diagnostic images and controllers publish bounded `Twist2DStamped` commands only while valid detections are available. All motion nodes stop on shutdown or stale input.

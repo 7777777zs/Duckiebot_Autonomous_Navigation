@@ -5,7 +5,7 @@ source /environment.sh
 # initialize launch file
 dt-launchfile-init
 
-# launch the camera distortion node
+# launch the node
 rosrun computer_vision camera_distortion_node.py
 
 # wait for app to end

@@ -41,6 +41,8 @@ class ComputerVisionNode(DTROS):
         # Store detected color
         self.detected_color = None
         self.detected_distance = 0
+        self.last_detection_time = None
+        self.detection_timeout = 0.5
         self.approach_speed = 0.15  # Slower speed when approaching line
         self.normal_speed = 0.22    # Normal forward speed
         self.turn_speed = 0.15      # Speed during turns
@@ -137,6 +139,7 @@ class ComputerVisionNode(DTROS):
         
         # Timer for state machine update (10Hz)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.state_machine_loop)
+        rospy.on_shutdown(self.stop_robot)
         
         self.log("Computer vision node initialized with colored line behaviors")
     
@@ -158,6 +161,8 @@ class ComputerVisionNode(DTROS):
             # Skip if camera info not received yet
             if not self.camera_info_received:
                 return
+
+            self.last_detection_time = rospy.get_time()
             
             # 1. Undistort the image using camera intrinsics
             undistorted_img = self.undistort_image(distorted_img)
@@ -172,6 +177,9 @@ class ComputerVisionNode(DTROS):
             if contour_area > 500:  # Minimum area threshold
                 self.detected_color = detected_color
                 self.detected_distance = distance
+            else:
+                self.detected_color = None
+                self.detected_distance = 0
             
             # Visualize detection if subscribers exist
             if self.color_detect_pub.get_num_connections() > 0:
@@ -378,10 +386,20 @@ class ComputerVisionNode(DTROS):
         
         # Publish current state
         self.state_pub.publish(self.state)
+
+        if (
+            self.last_detection_time is None
+            or current_time - self.last_detection_time > self.detection_timeout
+        ):
+            self.stop()
+            return
         
         # State machine logic
         if self.state == self.STATE_SEARCHING:
             # Move forward while searching for lines
+            if self.detected_color is None:
+                self.stop()
+                return
             self.move_forward(self.normal_speed)
             
             # If we detect a line at sufficient distance, start approaching

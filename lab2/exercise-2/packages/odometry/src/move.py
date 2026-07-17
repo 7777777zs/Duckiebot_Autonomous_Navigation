@@ -10,6 +10,8 @@ from std_msgs.msg import String, ColorRGBA
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point, Quaternion
 
+from odometry.odometry_math import integrate_diff_drive, signed_speed
+
 class RobotState:
     STOP = "STOP"
     TRACING_D = "TRACING_D"
@@ -51,6 +53,7 @@ class DShapeNode(DTROS):
         
         # Create rosbag
         self.bag = rosbag.Bag(f'odometry_{self.vehicle_name}.bag', 'w')
+        rospy.on_shutdown(self.on_shutdown)
 
         # Movement parameters
         self.linear_speed = 0.3      # meters per second
@@ -77,15 +80,15 @@ class DShapeNode(DTROS):
         
         v = (v_right + v_left) / 2.0
         omega = (v_right - v_left) / self.wheel_distance
-        
-        if abs(omega) < 1e-6:
-            self.x += v * dt * math.cos(self.theta)
-            self.y += v * dt * math.sin(self.theta)
-        else:
-            self.theta += omega * dt
-            self.x += (v/omega) * (math.sin(self.theta + omega * dt) - math.sin(self.theta))
-            self.y -= (v/omega) * (math.cos(self.theta + omega * dt) - math.cos(self.theta))
-            self.theta = self.theta + omega * dt
+        self.x, self.y, self.theta = integrate_diff_drive(
+            self.x,
+            self.y,
+            self.theta,
+            v_left,
+            v_right,
+            dt,
+            self.wheel_distance,
+        )
         
         # Create and save odometry message
         odom_msg = Odometry()
@@ -103,13 +106,14 @@ class DShapeNode(DTROS):
 
     def drive_straight(self, distance, speed, rate):
         """Drive straight for a given distance"""
-        duration = abs(distance / speed)
+        command_speed = signed_speed(distance, speed)
+        duration = abs(distance / command_speed)
         start_time = rospy.Time.now()
         
         while (rospy.Time.now() - start_time) < rospy.Duration(duration) and not rospy.is_shutdown():
-            cmd = WheelsCmdStamped(vel_left=speed, vel_right=speed)
+            cmd = WheelsCmdStamped(vel_left=command_speed, vel_right=command_speed)
             self.wheels_publisher.publish(cmd)
-            self.update_odometry(speed, speed, rospy.Time.now())
+            self.update_odometry(command_speed, command_speed, rospy.Time.now())
             rate.sleep()
         
         # Stop the robot
@@ -191,8 +195,9 @@ class DShapeNode(DTROS):
             self.set_led_color(LEDColors.OFF)
             
             # Close the bag file
-            if hasattr(self, 'bag') and self.bag is not None:
+            if self.bag is not None:
                 self.bag.close()
+                self.bag = None
             
             self.loginfo("Shutting down: Wheels stopped, LEDs off, and bag file saved.")
         except Exception as e:
@@ -207,8 +212,9 @@ if __name__ == '__main__':
     except Exception as e:
         rospy.logerr(f"An error occurred: {str(e)}")
     finally:
-        if hasattr(node, 'bag') and node.bag is not None:
+        if node.bag is not None:
             node.bag.close()
+            node.bag = None
         rospy.signal_shutdown("Node completed")
 
 
